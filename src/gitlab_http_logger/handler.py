@@ -3,7 +3,7 @@
 
 import json
 import logging
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import requests
 
@@ -32,15 +32,19 @@ def convert_record_severity(record_level: int) -> str:
 
 
 class GitlabHTTPHandler(logging.Handler):
-
-    def __init__(self, webhook_url: str, auth_key: str, title: Optional[str] = None,
-                 monitoring_tool: Optional[str] = None,
-                 hosts: Optional[Union[str, List[str]]] = None,
-                 gitlab_environment_name: Optional[str] = None):
+    def __init__(
+        self,
+        webhook_url: str,
+        auth_key: str,
+        title: Optional[str] = None,
+        monitoring_tool: Optional[str] = None,
+        hosts: Optional[Union[str, List[str]]] = None,
+        gitlab_environment_name: Optional[str] = None,
+    ) -> None:
         logging.Handler.__init__(self)
         self.webhook_url = webhook_url
         self.auth_key = auth_key
-        self.static_data = {}
+        self.static_data: Dict[str, Union[str, List[str]]] = {}
         if title is not None:
             self.static_data["title"] = title
         if monitoring_tool is not None:
@@ -50,7 +54,7 @@ class GitlabHTTPHandler(logging.Handler):
         if gitlab_environment_name is not None:
             self.static_data["gitlab_environment_name"] = gitlab_environment_name
 
-    def emit(self, record: logging.LogRecord):
+    def emit(self, record: logging.LogRecord) -> None:
         data = {
             "description": record.msg,
             "start_time": record.created,
@@ -61,9 +65,10 @@ class GitlabHTTPHandler(logging.Handler):
             "funcName": record.funcName,
         }
         # Create a new dictionary by merging data and self.static_data and send it.
-        self.__send_package({**data, **self.static_data})
+        d = {**data, **self.static_data}
+        self.__send_package(d)
 
-    def __send_package(self, data: dict):
+    def __send_package(self, data: Dict[str, Any]) -> None:
         requests.post(
             url=self.webhook_url,
             headers={
